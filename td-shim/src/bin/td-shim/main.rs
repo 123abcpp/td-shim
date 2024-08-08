@@ -160,6 +160,7 @@ pub extern "win64" fn _start(
         &mut mem,
         &mut td_event_log,
         &dynamic_info.acpi_tables,
+        init_vp as u32
     );
 
     panic!("payload entry() should not return here, deadloop!!!");
@@ -216,6 +217,7 @@ fn boot_builtin_payload(
     mem: &mut memory::Memory,
     event_log: &mut CcEventLogWriter,
     acpi_tables: &Vec<&[u8]>,
+    cpuid: u32,
 ) {
     // Get and parse image file from the payload firmware volume.
     let fv_buffer = memslice::get_mem_slice(memslice::SliceType::ShimPayload);
@@ -270,13 +272,14 @@ fn boot_builtin_payload(
     match relocation_info.image_type {
         ExecutablePayloadType::Elf => {
             let entry = unsafe {
-                core::mem::transmute::<u64, extern "sysv64" fn(u64, u64)>(
+                core::mem::transmute::<u64, extern "sysv64" fn(u64, u64, u32)>(
                     relocation_info.entry_point,
                 )
             };
             entry(
                 payload_hob_region.base_address as u64,
                 payload.as_ptr() as u64,
+                cpuid
             );
         }
         ExecutablePayloadType::PeCoff => {

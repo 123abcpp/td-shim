@@ -25,7 +25,10 @@ use crate::td;
 const EXTENDED_FUNCTION_INFO: u32 = 0x80000000;
 const VIRT_PHYS_MEM_SIZES: u32 = 0x80000008;
 const MEMORY_4G: u64 = 0x1_0000_0000;
+const MEMORY_KERNEL: u64 = 0x40_0000_0000;
+const SIZE_1G: u64 = 0x40000000;
 const SIZE_2M: u64 = 0x200000;
+const SIZE_RAM: u64 = SIZE_1G * 24;
 const RESERVED_MEMORY_SPACE_SIZE: u64 = 0x400_0000;
 
 pub struct Memory<'a> {
@@ -108,6 +111,14 @@ impl<'a> Memory<'a> {
         )
         .expect("Fail to map 0 to runtime memory bottom");
 
+        td_paging::create_mapping(
+            &mut self.pt,
+            PhysAddr::new(MEMORY_KERNEL),
+            VirtAddr::new(MEMORY_KERNEL),
+            td_paging::PAGE_SIZE_DEFAULT as u64,
+            SIZE_RAM,
+        )
+        .expect("Fail to map 256g to runtime memory bottom");
         // Setup page table only for system memory resources higher than 4G
         for m in &self.regions {
             let r_end = m.physical_start + m.resource_length;
