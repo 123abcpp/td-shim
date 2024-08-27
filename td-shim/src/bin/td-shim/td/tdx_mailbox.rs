@@ -15,8 +15,8 @@ use tdx_tdcall::{self, tdx::*};
 use crate::asm::{ap_relocated_func_addr, ap_relocated_func_size};
 
 // The count of AP to wakeup is limited by the heap size that can be used for stack allocation
-// The maximum size of memory used for AP stacks is 30 KB.
-const MAX_WORKING_AP_COUNT: u32 = 15;
+// The maximum size of memory used for AP stacks is 140 KB.
+const MAX_WORKING_AP_COUNT: u32 = 70;
 const AP_TEMP_STACK_SIZE: usize = 0x800;
 const AP_TEMP_STACK_TOTAL_SIZE: usize = MAX_WORKING_AP_COUNT as usize * AP_TEMP_STACK_SIZE;
 static AP_TEMP_STACK: [u8; AP_TEMP_STACK_TOTAL_SIZE] = [0; AP_TEMP_STACK_TOTAL_SIZE];
@@ -251,6 +251,73 @@ pub fn accept_memory_resource_range(mut cpu_num: u32, address: u64, size: u64) {
         address + align_low + major_part,
         align_high / PAGE_SIZE_4K,
         PAGE_SIZE_4K,
+    );
+
+    wait_for_ap_arrive(active_ap_cnt);
+    log::info!("mp_accept_memory_resource_range: done\n");
+}
+
+pub fn accept_memory_resource_range_2mb(mut cpu_num: u32, address: u64, size: u64) {
+    log::info!(
+        "mp_accept_memory_resource_range: 0x{:x} - 0x{:x} ... (wait for seconds)\n",
+        address,
+        size
+    );
+
+    let active_ap_cnt = if cpu_num - 1 > MAX_WORKING_AP_COUNT {
+        MAX_WORKING_AP_COUNT
+    } else {
+        cpu_num - 1
+    };
+
+    let mut align_low = if address & (ACCEPT_PAGE_SIZE - 1) == 0 {
+        0
+    } else {
+        min(size, ACCEPT_PAGE_SIZE - (address & (ACCEPT_PAGE_SIZE - 1)))
+    };
+    let mut major_part = size - align_low;
+    let mut align_high = 0u64;
+
+    if size > ACCEPT_PAGE_SIZE {
+        major_part = (size - align_low) & !(ACCEPT_PAGE_SIZE - 1);
+        if major_part < ACCEPT_PAGE_SIZE {
+            align_low += major_part;
+            major_part = 0;
+        } else {
+            align_high = size - align_low - major_part;
+        }
+    }
+
+    wait_for_ap_arrive(active_ap_cnt);
+
+    // Safety:
+    // BSP is the owner of the mailbox area, and APs cooperate with BSP to access the mailbox area.
+    let mut mail_box = unsafe { MailBox::new(get_mem_slice_mut(SliceType::MailBox)) };
+
+    // BSP calles the same function parallel_accept_memory to accept memory,
+    // so set the firmware arguments here.
+    // To do: Set these parameter only in ap_assign_work() when there's
+    // multiple cpus.
+    mail_box.set_fw_arg(1, active_ap_cnt as u64 + 1);
+    mail_box.set_fw_arg(2, address + align_low);
+    mail_box.set_fw_arg(3, address + size);
+
+    if major_part > 0 {
+        // 0 is the bootstrap processor running this code
+        for i in make_apic_range(active_ap_cnt) {
+            // rsp should be at the top of the memory allocated for each ap
+            let stack_top = AP_TEMP_STACK.as_ptr() as u64 + i as u64 * AP_TEMP_STACK_SIZE as u64;
+            ap_assign_work(i, stack_top, parallel_accept_memory as *const () as u32);
+        }
+    }
+
+    parallel_accept_memory(0);
+
+    td_accept_pages(address, align_low / PAGE_SIZE_2M, PAGE_SIZE_2M);
+    td_accept_pages(
+        address + align_low + major_part,
+        align_high / PAGE_SIZE_2M,
+        PAGE_SIZE_2M,
     );
 
     wait_for_ap_arrive(active_ap_cnt);

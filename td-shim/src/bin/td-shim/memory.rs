@@ -346,6 +346,11 @@ impl<'a> Memory<'a> {
                 }
             }
         }
+
+        const ONE_GB: u64 = 1 << 30;
+        const QUARK_START: u64 = 256 * ONE_GB;
+        const QUARK_SIZE: u64 = 24 * ONE_GB;
+        td::accept_quark_range(QUARK_START,QUARK_SIZE);
     }
 
     pub fn set_write_protect(&mut self, address: u64, size: u64) {

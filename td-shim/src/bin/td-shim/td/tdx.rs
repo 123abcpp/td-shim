@@ -25,6 +25,11 @@ pub fn accept_memory_resource_range(address: u64, size: u64) {
     super::tdx_mailbox::accept_memory_resource_range(cpu_num, address, size)
 }
 
+pub fn accept_quark_range(address: u64, size: u64) {
+    let cpu_num = get_num_vcpus();
+    super::tdx_mailbox::accept_memory_resource_range_2mb(cpu_num, address, size)
+}
+
 pub fn relocate_mailbox(new_mailbox: &mut [u8]) {
     super::tdx_mailbox::relocate_mailbox(new_mailbox).expect("Unable to relocate mailbox");
 }
