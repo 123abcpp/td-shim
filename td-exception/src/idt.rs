@@ -27,7 +27,7 @@ use crate::interrupt;
 const IDT_ENTRY_COUNT: usize = 256;
 
 lazy_static! {
-    static ref INIT_IDT: Mutex<Idt> = Mutex::new(Idt::new());
+    pub static ref INIT_IDT: Mutex<Idt> = Mutex::new(Idt::new());
 }
 
 #[no_mangle]

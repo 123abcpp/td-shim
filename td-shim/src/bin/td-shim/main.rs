@@ -264,11 +264,10 @@ fn boot_builtin_payload(
     let mailbox = mem.get_dynamic_mem_slice_mut(SliceType::RelocatedMailbox);
 
     // Relocate the Interrupt Descriptor Table before jump to payload
-    switch_idt(mailbox);
-
+    //switch_idt(mailbox);
+    td::set_idt(&td_exception::idt::INIT_IDT.lock().idtr());
     // Relocate Mailbox along side with the AP function
-    td::relocate_mailbox(mailbox);
-
+    //td::relocate_mailbox(mailbox);
     match relocation_info.image_type {
         ExecutablePayloadType::Elf => {
             let entry = unsafe {
