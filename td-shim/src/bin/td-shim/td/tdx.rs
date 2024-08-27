@@ -41,6 +41,10 @@ pub fn set_idt(idt_ptr: &DescriptorTablePointer) {
     super::tdx_mailbox::set_idt(get_num_vcpus(), idt_ptr);
 }
 
+pub fn set_gdt(gdt_ptr: &DescriptorTablePointer) {
+    super::tdx_mailbox::set_gdt(get_num_vcpus(), gdt_ptr);
+}
+
 pub fn get_num_vcpus() -> u32 {
     let td_info = tdx::tdcall_get_td_info().expect("Fail to get TDINFO");
 

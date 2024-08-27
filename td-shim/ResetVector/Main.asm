@@ -285,8 +285,14 @@ ParkAp:
     cmp     eax, MpProtectedModeWakeupCommandJumptoEntry
     je      .jump_to_entry
 
+    ;
+    ;Set Gdt for Ap
+    cmp     eax, MpProtectedModeWakeupCommandSetGdt
+    je      .set_gdt
 
     jmp    .check_apicid
+
+
 
 .check_avalible
     ;
@@ -304,7 +310,16 @@ ParkAp:
     ; Set the ApicId to be invalid to show the CR3 has been set
     mov     dword[rsp + ApicidOffset], MailboxApicIdInvalid
     jmp     .check_apicid
+.set_gdt
+    ;
+    ; Read out the GDT pointer from mailbox and load it into idtr, reuse idt offset
+    mov     rax, [rsp + IdtBaseOffset]
+    lgdt    [rax]
 
+    ;
+    ; Set the ApicId to be invalid to show the IDT has been set
+    mov     dword[rsp + ApicidOffset], MailboxApicIdInvalid
+    jmp     .check_apicid
 .set_idt
     ;
     ; Read out the IDT pointer from mailbox and load it into idtr

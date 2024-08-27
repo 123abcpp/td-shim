@@ -50,6 +50,7 @@ MpProtectedModeWakeupCommandCheck         equ       4
 MpProtectedModeWakeupCommandSetCr3        equ       5
 MpProtectedModeWakeupCommandSetIdt        equ       6
 MpProtectedModeWakeupCommandJumptoEntry   equ       7
+MpProtectedModeWakeupCommandSetGdt        equ       8
 
 MailboxApicIdInvalid                      equ       0xffffffff
 MailboxApicidBroadcast                    equ       0xfffffffe
