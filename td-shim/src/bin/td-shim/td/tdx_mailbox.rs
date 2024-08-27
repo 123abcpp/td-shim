@@ -47,6 +47,7 @@ mod spec {
     pub const MP_WAKEUP_COMMAND_AVAILABLE: u32 = 4;
     pub const MP_WAKEUP_COMMAND_SET_PAGING: u32 = 5;
     pub const MP_WAKEUP_COMMAND_SET_IDT: u32 = 6;
+    pub const MP_WAKEUP_COMMAND_JUMP_WITH_ID: u32 = 7;
 
     pub const MAILBOX_APICID_INVALID: u32 = 0xffffffff;
     pub const MAILBOX_APICID_BROADCAST: u32 = 0xfffffffe;
@@ -326,6 +327,20 @@ fn ap_set_idt(cpu_index: u32, idt_ptr: &DescriptorTablePointer) {
     wait_for_ap_response(&mut mail_box);
 }
 
+fn ap_jump_with_id(cpu_index: u32, entry: u64) {
+    // Safety:
+    // During this state, all the BSPs/APs are accessing the mailbox in shared immutable mode.
+    let mut mail_box = unsafe { MailBox::new(get_mem_slice_mut(SliceType::MailBox)) };
+    let stack_top = AP_TEMP_STACK.as_ptr() as u64 + cpu_index as u64 * AP_TEMP_STACK_SIZE as u64;
+    // Put the IDT base address to the first FW arg
+    mail_box.set_wakeup_vector(entry as u32);
+    mail_box.set_fw_arg(0, stack_top);
+    mail_box.set_command(spec::MP_WAKEUP_COMMAND_JUMP_WITH_ID);
+    mail_box.set_apic_id(cpu_index);
+
+    wait_for_ap_response(&mut mail_box);
+}
+
 pub fn relocate_page_table(cpu_num: u32, page_table_base: u64) {
     for cpu_index in make_apic_range(cpu_num - 1) {
         ap_set_cr3(cpu_index, page_table_base);
@@ -335,5 +350,11 @@ pub fn relocate_page_table(cpu_num: u32, page_table_base: u64) {
 pub fn set_idt(cpu_num: u32, idt_ptr: &DescriptorTablePointer) {
     for cpu_index in make_apic_range(cpu_num - 1) {
         ap_set_idt(cpu_index, idt_ptr);
+    }
+}
+
+pub fn jump_with_id(cpu_num: u32, entry: u64) {
+    for cpu_index in make_apic_range(cpu_num - 1) {
+        ap_jump_with_id(cpu_index, entry);
     }
 }

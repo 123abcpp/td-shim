@@ -280,6 +280,12 @@ ParkAp:
     cmp     eax, MpProtectedModeWakeupCommandSetIdt
     je      .set_idt
 
+    ;
+    ;Jump to entry
+    cmp     eax, MpProtectedModeWakeupCommandJumptoEntry
+    je      .jump_to_entry
+
+
     jmp    .check_apicid
 
 .check_avalible
@@ -346,3 +352,13 @@ ParkAp:
     nop
     jmp     rax
     jmp     $
+
+.jump_to_entry:
+    mov     rdx, 0
+    mov     rax, 0
+    mov     eax, dword[rsp + WakeupVectorOffset]
+    mov     rsi, [rsp + ApWorkingStackStart]
+    mov     dword[rsp + ApicidOffset], MailboxApicIdInvalid
+    mov     rsp, rsi
+    mov     edx, r9d
+    jmp     rax

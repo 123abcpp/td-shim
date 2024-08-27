@@ -271,14 +271,15 @@ fn boot_builtin_payload(
     match relocation_info.image_type {
         ExecutablePayloadType::Elf => {
             let entry = unsafe {
-                core::mem::transmute::<u64, extern "sysv64" fn(u64, u64, u32)>(
+                core::mem::transmute::<u64, extern "sysv64" fn(u64, u64, u64)>(
                     relocation_info.entry_point,
                 )
             };
+            td::ap_jump(relocation_info.entry_point as u64);
             entry(
                 payload_hob_region.base_address as u64,
                 payload.as_ptr() as u64,
-                cpuid
+                cpuid as u64
             );
         }
         ExecutablePayloadType::PeCoff => {

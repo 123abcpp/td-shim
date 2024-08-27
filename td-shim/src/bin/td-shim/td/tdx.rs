@@ -29,6 +29,10 @@ pub fn relocate_mailbox(new_mailbox: &mut [u8]) {
     super::tdx_mailbox::relocate_mailbox(new_mailbox).expect("Unable to relocate mailbox");
 }
 
+pub fn ap_jump(new_fun_addr: u64) {
+    super::tdx_mailbox::jump_with_id(get_num_vcpus(), new_fun_addr);
+}
+
 pub fn relocate_ap_page_table(page_table_base: u64) {
     super::tdx_mailbox::relocate_page_table(get_num_vcpus(), page_table_base);
 }
