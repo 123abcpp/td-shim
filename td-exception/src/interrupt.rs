@@ -5,6 +5,8 @@
 use core::arch::asm;
 #[cfg(feature = "tdx")]
 use tdx_tdcall::tdx;
+extern crate alloc;
+use alloc::string::ToString;
 
 // the order is aligned with scratch_push!() and scratch_pop!()
 #[repr(C, packed)]
@@ -329,6 +331,8 @@ interrupt_error!(page, stack, {
     let cr2: usize;
     asm!("mov {}, cr2",  out(reg) cr2);
     log::info!("Page fault: {:>016X}\n", cr2);
+    td_logger::LOGGER.lock().write_string("page");
+    td_logger::LOGGER.lock().write_string(cr2.to_string().as_str());
     stack.dump();
     deadloop();
 });
@@ -388,7 +392,10 @@ const EXIT_REASON_WBINVD: u32 = 54;
 interrupt_no_error!(virtualization, stack, {
     // Firstly get VE information from TDX module, halt it error occurs
     let ve_info = tdx::tdcall_get_ve_info().expect("#VE handler: fail to get VE info\n");
-
+    if ve_info.exit_reason!=EXIT_REASON_IO_INSTRUCTION{
+        td_logger::LOGGER.lock().write_string("#VE");
+        td_logger::LOGGER.lock().write_string(ve_info.exit_reason.to_string().as_str());
+    }
     match ve_info.exit_reason {
         EXIT_REASON_HLT => {
             tdx::tdvmcall_halt();

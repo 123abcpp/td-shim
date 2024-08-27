@@ -1097,6 +1097,7 @@ dependencies = [
  "lazy_static",
  "log",
  "spin 0.9.8",
+ "td-logger",
  "tdx-tdcall",
  "x86_64",
 ]
