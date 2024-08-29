@@ -164,3 +164,9 @@ afl_test:
 
 libfuzzer_test:
 	bash sh_script/fuzzing.sh -n libfuzzer_all -t 20
+
+quark_shim:
+	git submodule update --init --recursive
+	./sh_script/preparation.sh
+	${CARGO} +${NIGHTLY_TOOLCHAIN} xbuild -p td-shim --target x86_64-unknown-none --release --features=main,tdx --no-default-features
+	${CARGO} +${NIGHTLY_TOOLCHAIN} run -p td-shim-tools --bin td-shim-ld --features linker -- -t executable target/x86_64-unknown-none/release/ResetVector.bin target/x86_64-unknown-none/release/td-shim -o ./shim.bin -p trampoline.elf
